@@ -1,0 +1,7 @@
+python-dotenv==1.0.0
+llama-index==0.12.45
+llama-index-llms-ollama
+numpy
+llama-index-embeddings-ollama
+gradio
+arxiv
