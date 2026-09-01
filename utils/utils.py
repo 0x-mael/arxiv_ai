@@ -21,7 +21,7 @@ async def stream_from_agent(
 
     async for event in handler.stream_events():
         if isinstance(event, ToolCallResult):
-            # Formate les arguments et la sortie de l'outil
+            # Format args and output of the tool
             args_str = json.dumps(event.tool_kwargs, indent=2, ensure_ascii=False)
             if isinstance(event.tool_output, (dict, list)):
                 out_str = json.dumps(event.tool_output, indent=2, ensure_ascii=False)
@@ -49,7 +49,7 @@ async def stream_from_agent(
                 text_message.content += event.delta
             yield list(messages)
 
-    # Récupération et résolution complète du résultat final
+    # Retrieval and final answer parsing
     final_response = await handler
     if text_message is None:
         messages.append(ChatMessage(role="assistant", content=str(final_response)))
