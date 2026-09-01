@@ -29,9 +29,14 @@ class arxivAgent:
         agent = FunctionAgent(
             tools=[fetch_paper, download_arxiv],
             llm=self.llm,
-            system_prompt=
-            "You are a research scientist agent that helps engineers find ARXIV papers based on their filters. Use the given tools to give correct and grounded answers. You should ALWAYS call the appropriate tool with corresponding parameters like query and criteria based on the user prompt value. ",
-            verbose=False,
+            system_prompt=(
+                "You are an expert research scientist assistant that helps engineers search and download scientific papers from arXiv.\n"
+                "Instructions:\n"
+                "1. Always use `fetch_paper` to search for papers with the user's query and appropriate sorting criteria ('relevance', 'submitteddate', or 'lastUpdateddate').\n"
+                "2. When the user asks to download a paper (or search and download), first find the paper with `fetch_paper`, then immediately call `download_arxiv` using the `pdf_url` obtained from the search result.\n"
+                "3. Always provide a clear, helpful final response summarizing the paper (Title, Authors, Published Date, Summary) and confirm the download if requested."
+            ),
+            verbose=True,
         )
         return agent
 
@@ -48,8 +53,8 @@ class arxivAgent:
         return str(final_response)
 
 
+arxivagent = arxivAgent()
 async def process_query(message: str, history) -> str:
-    arxivagent = arxivAgent()
     async for msg in stream_from_agent(arxivagent.agent, message, arxivagent.ctx):
             yield msg
 

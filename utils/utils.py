@@ -1,6 +1,6 @@
 import json
 from typing import AsyncGenerator, List, Optional
-from llama_index.core.agent.workflow import FunctionAgent, ToolCallResult, AgentStream
+from llama_index.core.agent.workflow import FunctionAgent, ToolCallResult, AgentStream, AgentOutput
 from llama_index.core.workflow import Context
 from gradio import ChatMessage
 
@@ -32,6 +32,7 @@ async def stream_from_agent(
                 f"**Arguments:**\n```json\n{args_str}\n```\n\n"
                 f"**Results:**\n```json\n{out_str}\n```"
             )
+            print(str(tool_content), flush=True)
 
             tool_message = ChatMessage(
                 role="assistant",
@@ -49,9 +50,31 @@ async def stream_from_agent(
                 text_message.content += event.delta
             yield list(messages)
 
+        elif isinstance(event, AgentOutput):
+            # Capture complete output when non-streaming response is produced
+            content = (
+                event.response.content
+                if hasattr(event.response, "content")
+                else str(event.response)
+            )
+            if content:
+                if text_message is None:
+                    text_message = ChatMessage(role="assistant", content=content)
+                    messages.append(text_message)
+                else:
+                    text_message.content = content
+                yield list(messages)
+
     # Retrieval and final answer parsing
     final_response = await handler
-    if text_message is None:
-        messages.append(ChatMessage(role="assistant", content=str(final_response)))
-        yield list(messages)
+    if text_message is None and final_response:
+        final_content = (
+            final_response.response.content
+            if hasattr(final_response, "response") and hasattr(final_response.response, "content")
+            else str(getattr(final_response, "response", final_response))
+        )
+        if final_content:
+            messages.append(ChatMessage(role="assistant", content=final_content))
+            yield list(messages)
+
 

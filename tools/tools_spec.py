@@ -1,6 +1,7 @@
 import arxiv
 from urllib.request import urlretrieve
 from typing import Dict, Literal
+import os
 
 def fetch_paper(query: str, criteria: Literal["submitteddate", "relevance", "lastUpdateddate"] ) -> Dict:
     """Function to retrieve the title, authors, date, summary and PDF link of an arXiv paper.
@@ -47,11 +48,31 @@ def fetch_paper(query: str, criteria: Literal["submitteddate", "relevance", "las
     }
 
 
-def download_arxiv(paper_id_or_url: str = "") -> str:
-    """Function to download an arxiv paper giving its document id or URL"""
+def download_arxiv(pdf_url: str, output_dir: str = "./downloads") -> str:
+    """Function to download an arXiv paper given its PDF URL or arXiv ID.
 
-    urlretrieve(paper_id_or_url, "paper.pdf")
-    return f"Téléchargement réussi pour {paper_id_or_url}" if paper_id_or_url else "Téléchargement réussi"
+    Args:
+        pdf_url: The PDF URL or arXiv ID of the paper to download.
+        output_dir: The directory where the downloaded PDF file will be saved.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    url = pdf_url.strip()
+    if not url.startswith("http"):
+        url = f"https://arxiv.org/pdf/{url}"
+    if not url.endswith(".pdf"):
+        url += ".pdf"
+
+    filename = url.split("/")[-1]
+    file_path = os.path.join(output_dir, filename)
+
+    try:
+        urlretrieve(url, file_path)
+        return f"Paper successfully downloaded and saved to: {file_path}"
+    except Exception as e:
+        return f"Error while trying to download paper from {url}: {e}"
+
+
 
 
 if __name__ == "__main__":
