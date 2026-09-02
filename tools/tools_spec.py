@@ -14,7 +14,7 @@ def fetch_paper(
     Args:
         query: Search keywords or title (e.g. 'RAG', 'knowledge distillation').
         query_prefix: Optional field prefix like 'ti:' (title) or 'au:' (author). Default is empty string.
-        criteria: Sort criterion ('relevance', 'submitteddate', 'lastUpdateddate'). Default is 'relevance'.
+        criteria: Sort criterion ('relevance', 'submitteddate', 'lastUpdateddate') based on the user request. Default is 'relevance'.
     """
     mapping = {
         "relevance": arxiv.SortCriterion.Relevance,

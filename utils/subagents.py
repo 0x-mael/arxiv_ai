@@ -32,6 +32,7 @@ class subAgents :
                 "1. Query format should STRICTLY look like ex : {query:'RAG',query_prefix:'ti:', criteria : 'relevance'}\n"
                 "2. The query_prefix arg should be one choice between pydantic queryformat hinted ones ONLY according to the search query.\n"
                 "3. You should only return the result. No text BEFORE or AFTER the json result."
+                "4. You should choose the criteria according to the user request and the allowed values in the pydantic QueryFormat and only leave it to its default value if the prompt only contains the query term."
             ),
             llm=self.llm,
             output_cls=QueryFormat,
