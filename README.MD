@@ -57,7 +57,7 @@ arxiver/
 - Python 3.10+
 - [Ollama](https://ollama.com/) running locally with your model:
   ```bash
-  ollama run gemma2:latest
+  ollama run gemma4:latest
   ```
 
 ### 2. Installation
@@ -85,7 +85,7 @@ Configure your `.env` file in the root directory:
 
 ```env
 OLLAMA_API_URL=http://localhost:11434
-MODEL_NAME=gemma2:latest
+MODEL_NAME=gemma4:latest
 ```
 
 ### 4. Running the Application

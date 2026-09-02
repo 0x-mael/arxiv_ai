@@ -29,6 +29,7 @@ class arxivAgent:
             # request_timeout=120,
         )
         self.orchestrator = self.define_agent()
+        self.ctx = Context(self.orchestrator)
 
     def define_agent(self):
         orchestrator = FunctionAgent(
@@ -73,7 +74,7 @@ class arxivAgent:
 
 arxivagent = arxivAgent()
 async def process_query(message: str, history) -> str:
-    async for msg in stream_from_agent(arxivagent.orchestrator, message):
+    async for msg in stream_from_agent(arxivagent.orchestrator, message,ctx=arxivagent.ctx):
             yield msg
 
 
