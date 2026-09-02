@@ -1,14 +1,20 @@
 import arxiv
 from urllib.request import urlretrieve
-from typing import Dict, Literal
+from typing import Dict, Literal,Optional
 import os
 
-def fetch_paper(query: str, criteria: Literal["submitteddate", "relevance", "lastUpdateddate"] ) -> Dict:
+
+def fetch_paper(
+    query: str,
+    query_prefix: str = "",
+    criteria: Literal["submitteddate", "relevance", "lastUpdateddate"] = "relevance",
+) -> Dict:
     """Function to retrieve the title, authors, date, summary and PDF link of an arXiv paper.
 
     Args:
         query: Search keywords or title (e.g. 'RAG', 'knowledge distillation').
-        criteria: Sort criterion. Allowed values: 'relevance', 'submitted_date', 'last_updated_date'. Default is 'relevance'.
+        query_prefix: Optional field prefix like 'ti:' (title) or 'au:' (author). Default is empty string.
+        criteria: Sort criterion ('relevance', 'submitteddate', 'lastUpdateddate'). Default is 'relevance'.
     """
     mapping = {
         "relevance": arxiv.SortCriterion.Relevance,
@@ -26,16 +32,24 @@ def fetch_paper(query: str, criteria: Literal["submitteddate", "relevance", "las
     )
     sort_criterion = mapping.get(clean_criteria, arxiv.SortCriterion.Relevance)
 
+    # Clean and avoid duplicate prefix
+    clean_prefix = query_prefix.strip() if isinstance(query_prefix, str) else ""
+    if clean_prefix and not query.startswith(clean_prefix):
+        clean_query = f"{clean_prefix}{query}"
+    else:
+        clean_query = query
+
     client = arxiv.Client()
     search = arxiv.Search(
-        query=query,
+        query=clean_query,
         max_results=1,
         sort_by=sort_criterion,
-        sort_order=arxiv.SortOrder.Descending, 
+        sort_order=arxiv.SortOrder.Descending,
     )
     results = list(client.results(search))
     if not results:
-        return {"error": f"No paper found for query: {query}"}
+        return {"error": f"No paper found for query: {clean_query}"}
+
 
     paper = results[0]
     return {
@@ -76,5 +90,5 @@ def download_arxiv(pdf_url: str, output_dir: str = "./downloads") -> str:
 
 
 if __name__ == "__main__":
-    results = fetch_paper(query="RAG", criteria="relevance")
+    results = fetch_paper(query="ti:RAG", criteria="relevance")
     print(results)

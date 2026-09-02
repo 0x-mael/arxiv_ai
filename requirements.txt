@@ -5,3 +5,4 @@ numpy
 llama-index-embeddings-ollama
 gradio
 arxiv
+mlflow

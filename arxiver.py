@@ -7,55 +7,73 @@ from llama_index.core.workflow import Context
 import gradio as gr
 from gradio import ChatMessage
 
-from tools.tools_spec import fetch_paper, download_arxiv
+import mlflow
+
+from tools.tools_spec import download_arxiv
+from utils.subagents import call_arg_agent, call_evaluator_agent, call_retriever_agent
 from utils.utils import stream_from_agent
 
 load_dotenv()
-
+mlflow.set_experiment("Arxiv-Multi-Agent-Research")
+mlflow.llama_index.autolog()
 
 class arxivAgent:
     def __init__(self):
         self.ollama_url = os.getenv("OLLAMA_API_URL")
+        self.model_name = os.getenv("MODEL_NAME")
 
         self.llm = Ollama(
-            model='mistral-small3.1:latest',
+            model=self.model_name,
             base_url=self.ollama_url,
-            request_timeout=120,
+            temperature=0.2,
+            # request_timeout=120,
         )
-        self.agent = self.define_agent()
-        self.ctx = Context(self.agent)
+        self.orchestrator = self.define_agent()
 
     def define_agent(self):
-        agent = FunctionAgent(
-            tools=[fetch_paper, download_arxiv],
+        orchestrator = FunctionAgent(
+            tools=[call_arg_agent, call_retriever_agent, call_evaluator_agent, download_arxiv],
             llm=self.llm,
             system_prompt=(
-                "You are an expert research scientist assistant that helps engineers search and download scientific papers from arXiv.\n"
-                "Instructions:\n"
-                "1. Always use `fetch_paper` to search for papers with the user's query and appropriate sorting criteria ('relevance', 'submitteddate', or 'lastUpdateddate').\n"
-                "2. When the user asks to download a paper (or search and download), first find the paper with `fetch_paper`, then immediately call `download_arxiv` using the `pdf_url` obtained from the search result.\n"
-                "3. Always provide a clear, helpful final response summarizing the paper (Title, Authors, Published Date, Summary) and confirm the download if requested."
+                "You are an expert research scientist assistant that helps engineers search and download scientific papers from arXiv.\n\n"
+                "ROUTING INSTRUCTIONS:\n"
+                "A. If the user asks to SEARCH for a paper (or SEARCH AND DOWNLOAD):\n"
+                "   1. Call `call_arg_agent` with the user prompt to format query parameters.\n"
+                "   2. Call `call_retriever_agent` to search the paper.\n"
+                "   3. Call `call_evaluator_agent` to review relevance.\n"
+                "   4. If score < 8, recall `call_retriever_agent` with feedback (max 2 retries).\n"
+                "   5. If score >= 8 (or after 2 retries), and if the user requested a download, call `download_arxiv(pdf_url=...)` with the paper's PDF URL.\n"
+                "   6. Formulate the final complete answer with the paper title, authors, date, summary, and download status.\n\n"
+                "B. If the user asks to DOWNLOAD a paper that was ALREADY discussed or provided in context:\n"
+                "   - Do NOT run the search pipeline. Directly call `download_arxiv(pdf_url=...)` using the PDF URL from the conversation history, then confirm to the user.\n\n"
+                "CRITICAL: Never output a direct final text answer to the user after Step 1 without completing the required steps."
             ),
             verbose=True,
+            initial_state={
+                "query_args": None,
+                "retrieved_paper": None,
+                "evaluation_content": None,
+            },
         )
-        return agent
+        return orchestrator
 
-    async def query_eng(self, query: str) -> str:
-        response = self.agent.run(user_msg=query, ctx=self.ctx)
-        async for event in response.stream_events():
 
-            if isinstance(event, ToolCallResult):
-                print(f"\nCall {event.tool_name} with {event.tool_kwargs}\n Returned : {event.tool_output}")
+    # async def query_eng(self, query: str) -> str:
+    #     response = self.agent.run(user_msg=query, ctx=self.ctx)
+    #     async for event in response.stream_events():
 
-            if isinstance(event,AgentStream):
-                print(f"{event.delta}", end="", flush=True)
-        final_response = await response
-        return str(final_response)
+    #         if isinstance(event, ToolCallResult):
+    #             print(f"\nCall {event.tool_name} with {event.tool_kwargs}\n Returned : {event.tool_output}")
+
+    #         if isinstance(event,AgentStream):
+    #             print(f"{event.delta}", end="", flush=True)
+    #     final_response = await response
+    #     return str(final_response)
 
 
 arxivagent = arxivAgent()
 async def process_query(message: str, history) -> str:
-    async for msg in stream_from_agent(arxivagent.agent, message, arxivagent.ctx):
+    async for msg in stream_from_agent(arxivagent.orchestrator, message):
             yield msg
 
 

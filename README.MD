@@ -1,19 +1,23 @@
 <!-- author : ABISSI Kotchikpa Ismael -->
 <!-- date : September 2026 -->
 
-# Arxiver - AI Research Assistant for arXiv
+# Arxiver - Multi-Agent AI Research Assistant for arXiv
 
-**Arxiver** is an agentic AI assistant designed to help researchers and engineers discover, explore, and download scientific papers from [arXiv](https://arxiv.org/). Powered by **LlamaIndex FunctionAgent**, local LLMs via **Ollama**, and an interactive **Gradio** web interface, it provides grounded answers with live, transparent tool execution tracking.
+**Arxiver** is a multi-agent AI research assistant designed to discover, evaluate, and download scientific papers from [arXiv](https://arxiv.org/). Built on **LlamaIndex FunctionAgent**, local LLMs via **Ollama**, **MLflow** tracing, and an interactive **Gradio** web interface, it coordinates specialized sub-agents with state management and automated relevance review.
 
 ---
 
 ## Features
 
-- **Intelligent arXiv Search**: Query scientific papers in natural language with automatic filtering by relevance, submission date, or last update date.
-- **Agentic Tool Calling**: Uses LlamaIndex `FunctionAgent` workflows to dynamically decide when and how to call specialized tools.
-- **Paper Download**: Automated retrieval and downloading of arXiv research papers.
-- **Real-time Streaming & Collapsible Tool Logs**: Streamed responses in Gradio with persistent, collapsible accordions displaying the exact tool arguments and execution outputs.
-- **Local & Privacy-Friendly**: Runs with local or remote open-weights models served through Ollama (e.g., `mistral-small3.1`).
+- **Multi-Agent Orchestration**: A supervisor orchestrator coordinates specialized sub-agents across a structured research pipeline:
+  - **ArgFormatterAgent**: Translates user prompts into structured search parameters (`QueryFormat`).
+  - **RetrieverAgent**: Executes search queries on arXiv and extracts structured metadata (`ResponseFormat`).
+  - **EvaluatorAgent**: Scores paper relevance (0 to 10) and provides refinement feedback (`EvaluationFormat`).
+- **Self-Correction & Retry Mechanism**: Automatically refines and retries paper retrieval if the relevance score is below 8 (up to 2 retries).
+- **Direct Paper Download**: Downloads PDF papers locally via `download_arxiv` on request.
+- **MLflow Tracing & Observability**: Automated tracing of agent interactions, tool calls, and execution latencies using `mlflow.llama_index.autolog()`.
+- **Real-time Streaming & Structured UI**: Live response streaming with collapsible accordions in Gradio displaying tool calls, arguments, and execution outputs.
+- **Local & Privacy-Friendly**: Runs on local open-weights models served through Ollama.
 
 ---
 
@@ -22,10 +26,12 @@
 ```text
 arxiver/
 ├── tools/
-│   └── tools_spec.py      # arXiv API tool definitions (search, download)
+│   ├── schemas_spec.py    # Pydantic schemas (QueryFormat, ResponseFormat, EvaluationFormat)
+│   └── tools_spec.py      # arXiv API functions (fetch_paper, download_arxiv)
 ├── utils/
-│   └── utils.py           # Streaming handler converting agent events to Gradio ChatMessages
-├── arxiver.py             # Main entry point & Gradio ChatInterface
+│   ├── subagents.py       # Specialized sub-agents and orchestrator tool wrappers
+│   └── utils.py           # Event stream handler for Gradio ChatMessage UI
+├── arxiver.py             # Orchestrator agent, MLflow setup, and Gradio interface
 ├── requirements.txt       # Project dependencies
 ├── .env                   # Environment variables
 └── README.MD              # Project documentation
@@ -36,9 +42,11 @@ arxiver/
 ## Tech Stack
 
 - **Agent Framework**: [LlamaIndex](https://www.llamaindex.ai/) (`FunctionAgent` / Workflows)
-- **LLM Provider**: [Ollama](https://ollama.com/) (`mistral-small3.1:latest`)
-- **User Interface**: [Gradio](https://www.gradio.app/) (with `gr.ChatMessage` structured UI)
+- **LLM Provider**: [Ollama](https://ollama.com/)
+- **Observability**: [MLflow](https://mlflow.org/) (Tracing & LLM Autologging)
+- **User Interface**: [Gradio](https://www.gradio.app/) (`ChatMessage` interface)
 - **arXiv Integration**: `arxiv` Python API
+- **Data Validation**: Pydantic
 
 ---
 
@@ -47,9 +55,9 @@ arxiver/
 ### 1. Prerequisites
 
 - Python 3.10+
-- [Ollama](https://ollama.com/) installed and running with your chosen model:
+- [Ollama](https://ollama.com/) running locally with your model:
   ```bash
-  ollama run mistral-small3.1:latest
+  ollama run gemma2:latest
   ```
 
 ### 2. Installation
@@ -57,7 +65,6 @@ arxiver/
 Clone the repository and set up a virtual environment:
 
 ```bash
-# Clone repository
 git clone <repository-url>
 cd arxiver
 
@@ -74,10 +81,11 @@ pip install -r requirements.txt
 
 ### 3. Configuration
 
-Create a `.env` file in the root directory (or update existing):
+Configure your `.env` file in the root directory:
 
 ```env
 OLLAMA_API_URL=http://localhost:11434
+MODEL_NAME=gemma2:latest
 ```
 
 ### 4. Running the Application
@@ -88,7 +96,13 @@ Launch the Gradio web interface:
 python arxiver.py
 ```
 
-The application will start locally at `http://127.0.0.1:7860`.
+To monitor traces and execution graphs in MLflow:
+
+```bash
+mlflow ui
+```
+
+The Gradio interface will be accessible at `http://127.0.0.1:7860` and the MLflow dashboard at `http://127.0.0.1:5000`.
 
 ---
 
@@ -96,7 +110,7 @@ The application will start locally at `http://127.0.0.1:7860`.
 
 - *"What is the last paper about RAG?"*
 - *"What is the most relevant paper about knowledge distillation?"*
-- *"What is the most recent research on Agentic AI?"*
+- *"Find the most recent paper about agentic AI and download it."*
 
 ---
 
