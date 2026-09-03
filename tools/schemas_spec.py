@@ -4,9 +4,8 @@ from typing import Dict, Literal,Optional
 
 
 class QueryFormat(BaseModel):
-    query:str
-    query_prefix:Optional[Literal["ti:","au:"]]
-    criteria : Literal["submitteddate", "relevance", "lastUpdateddate"]
+    query: str = "all:paper"
+    criteria: Literal["submitteddate", "relevance", "lastUpdateddate"] = "relevance"
 
 
 class EvaluationFormat(BaseModel):

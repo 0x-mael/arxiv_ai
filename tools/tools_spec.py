@@ -6,15 +6,13 @@ import os
 
 def fetch_paper(
     query: str,
-    query_prefix: str = "",
     criteria: Literal["submitteddate", "relevance", "lastUpdateddate"] = "relevance",
 ) -> Dict:
     """Function to retrieve the title, authors, date, summary and PDF link of an arXiv paper.
 
     Args:
-        query: Search keywords or title (e.g. 'RAG', 'knowledge distillation').
-        query_prefix: Optional field prefix like 'ti:' (title) or 'au:' (author). Default is empty string.
-        criteria: Sort criterion ('relevance', 'submitteddate', 'lastUpdateddate') based on the user request. Default is 'relevance'.
+        query: Full arXiv search query (e.g. 'ti:RAG', 'ti:"Knowledge Distillation" AND au:Hinton', 'cat:cs.AI AND ti:Agent').
+        criteria: Sort criterion ('relevance', 'submitteddate', 'lastUpdateddate'). Default is 'relevance'.
     """
     mapping = {
         "relevance": arxiv.SortCriterion.Relevance,
@@ -24,7 +22,6 @@ def fetch_paper(
         "lastupdateddate": arxiv.SortCriterion.LastUpdatedDate,
     }
 
-    # Clean and match criteria string even if the model passes variations
     clean_criteria = (
         criteria.lower().replace("arxiv.sortcriterion.", "").strip()
         if isinstance(criteria, str)
@@ -32,12 +29,7 @@ def fetch_paper(
     )
     sort_criterion = mapping.get(clean_criteria, arxiv.SortCriterion.Relevance)
 
-    # Clean and avoid duplicate prefix
-    clean_prefix = query_prefix.strip() if isinstance(query_prefix, str) else ""
-    if clean_prefix and not query.startswith(clean_prefix):
-        clean_query = f"{clean_prefix}{query}"
-    else:
-        clean_query = query
+    clean_query = query.strip() if isinstance(query, str) else "all:paper"
 
     client = arxiv.Client()
     search = arxiv.Search(
@@ -49,6 +41,7 @@ def fetch_paper(
     results = list(client.results(search))
     if not results:
         return {"error": f"No paper found for query: {clean_query}"}
+
 
 
     paper = results[0]
@@ -90,5 +83,5 @@ def download_arxiv(pdf_url: str, output_dir: str = "./downloads") -> str:
 
 
 if __name__ == "__main__":
-    results = fetch_paper(query="ti:RAG", criteria="relevance")
+    results = fetch_paper(query="ti:RAG AND au:Patrick", criteria="relevance")
     print(results)

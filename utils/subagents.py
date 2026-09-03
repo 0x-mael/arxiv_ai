@@ -4,6 +4,7 @@ from llama_index.core.workflow import Context
 from llama_index.llms.ollama import Ollama
 from dotenv import load_dotenv
 import os
+import json
 from tools.tools_spec import fetch_paper
 from tools.schemas_spec import QueryFormat, ResponseFormat, EvaluationFormat
 from typing import Dict
@@ -23,16 +24,28 @@ class subAgents :
             request_timeout=120,
         )
 
+        self.queryformat = json.dumps(QueryFormat.model_json_schema()["properties"], indent=2)
+
         self.argformat_agent = FunctionAgent(
             name="ArgFormatterAgent",
-            description="Given an arxiv query, return params for the api call",
+            description="Given an arxiv research request, return structured parameters for search",
             system_prompt=(
-                "You are a formatter agent. You should return the structured query for advanced search if needed according to user prompt and the query format. "
-                "Instructions:\n"
-                "1. Query format should STRICTLY look like ex : {query:'RAG',query_prefix:'ti:', criteria : 'relevance'}\n"
-                "2. The query_prefix arg should be one choice between pydantic queryformat hinted ones ONLY according to the search query.\n"
-                "3. You should only return the result. No text BEFORE or AFTER the json result."
-                "4. You should choose the criteria according to the user request and the allowed values in the pydantic QueryFormat and only leave it to its default value if the prompt only contains the query term."
+                "You are an expert arXiv query formatter. Convert the user prompt into a valid arXiv boolean query string.\n\n"
+                f"Allowed Schema:\n{self.queryformat}\n\n"
+                "arXiv Query Syntax Rules:\n"
+                "- Field Prefixes:\n"
+                "  * `ti:` for Title (e.g. `ti:RAG` or `ti:\"knowledge distillation\"`)\n"
+                "  * `au:` for Author (e.g. `au:Hinton` or `au:\"Yann LeCun\"`)\n"
+                "  * `abs:` for Abstract text\n"
+                "  * `cat:` for Subject Category (e.g. `cat:cs.AI`, `cat:cs.CL`, `cat:cs.CV`)\n"
+                "  * `all:` for all fields (default if no specific field is specified)\n"
+                "- Boolean Operators: MUST be UPPERCASE `AND`, `OR`, `ANDNOT`.\n"
+                "- Multi-word phrases MUST be enclosed in quotes (e.g. `ti:\"agentic workflows\"`).\n\n"
+                "Examples:\n"
+                "1. 'What is the last paper about RAG?' -> {\"query\": \"ti:RAG\", \"criteria\": \"submitteddate\"}\n"
+                "2. 'Papers on knowledge distillation by Geoffrey Hinton' -> {\"query\": \"ti:\\\"knowledge distillation\\\" AND au:Hinton\", \"criteria\": \"relevance\"}\n"
+                "3. 'Recent papers on reinforcement learning in computer vision' -> {\"query\": \"ti:\\\"reinforcement learning\\\" AND cat:cs.CV\", \"criteria\": \"submitteddate\"}\n\n"
+                "Output strictly the JSON result adhering to QueryFormat schema without extra text."
             ),
             llm=self.llm,
             output_cls=QueryFormat,
@@ -42,12 +55,11 @@ class subAgents :
             name="RetrieverAgent",
             description="Search a research paper according to the query and params",
             system_prompt=(
-                "You are a retriever agent. Given a json schema with query params, you will call the `fetch_paper` tool and format the response using the response format schema.\n"
+                "You are a retriever agent. Given search parameters (query string and criteria), you will call the `fetch_paper` tool with `query` and `criteria`.\n"
                 "Instructions:\n"
-                "1. Always use `fetch_paper` to search for papers with the user's query prefixed or not with the given wildcard and appropriate sorting criteria ('relevance', 'submitteddate', or 'lastUpdateddate').\n"
-                "2. If advanced search is needed, you should use the given prefix to enrich the query and get a better response.\n"
-                "3. You should give a final response using strictly the responseFormat schema.\n"
-                "4. If the evaluator agent gives you feedback, you should retry by taking the feedback as advanced context to get a better answer."
+                "1. Always call `fetch_paper(query=..., criteria=...)` directly with the provided query string.\n"
+                "2. You should give a final response using strictly the ResponseFormat schema.\n"
+                "3. If the evaluator agent gives you feedback, refine the query string to get a better result."
             ),
             llm=self.llm,
             tools=[fetch_paper],
@@ -90,7 +102,8 @@ async def call_arg_agent(ctx: Context, prompt: str = "", **kwargs) -> str:
 async def call_retriever_agent(ctx: Context, **kwargs) -> str:
     """Step 2: Search and retrieve research papers using the parameters prepared in Step 1."""
     async with ctx.store.edit_state() as ctx_state:
-        args = kwargs or query_args or ctx_state["state"].get("query_args", None)
+        stored_args = ctx_state["state"].get("query_args", None)
+        args = kwargs.get("query_args") or kwargs or stored_args
 
         if not args:
             return "No args to do the query. Please call call_arg_agent first."
@@ -105,6 +118,7 @@ async def call_retriever_agent(ctx: Context, **kwargs) -> str:
 
         ctx_state["state"]["retrieved_paper"] = str(result)
         return f"Paper retrieved: {result}\n\n[SYSTEM NOTICE: Step 2 complete. You MUST now proceed to Step 3 by calling call_evaluator_agent(). Do NOT output a final response to the user yet.]"
+
 
 
 async def call_evaluator_agent(ctx: Context, paper_info: str = "", query: str = "", **kwargs) -> str:
