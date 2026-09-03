@@ -67,11 +67,10 @@ class subAgents :
             description="Search a research paper according to the query and params",
             system_prompt=(
                 "You are a silent tool-calling agent. Your ONLY task is to immediately execute the `fetch_paper` tool with the given query and criteria.\n\n"
-                f"Target JSON Schema:\n{self.responseformat}\n\n"
                 "CRITICAL RULES:\n"
                 "1. NEVER output conversational text, thoughts, reasoning, or explanations.\n"
                 "2. Call `fetch_paper(query=..., criteria=...)` directly with the EXACT parameters you received.\n"
-                "3. Strictly return a JSON object adhering to the Target JSON Schema with all required fields (title, authors, published_date, summary, pdf_url)."
+                f"3. Strictly return a JSON object adhering to the following Target JSON Schema : {self.responseformat} with all required fields (title, authors, published_date, summary, pdf_url)."
             ),
             llm=self.slm,
             tools=[fetch_paper],
