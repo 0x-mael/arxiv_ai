@@ -42,17 +42,18 @@ class subAgents :
                 f"Allowed Schema:\n{self.queryformat}\n\n"
                 "arXiv Query Syntax Rules:\n"
                 "- Field Prefixes:\n"
-                "  * `ti:` for Title (e.g. `ti:RAG` or `ti:knowledge distillation`)\n"
-                "  * `au:` for Author (e.g. `au:Geoffrey Hinton` or `au:Yann LeCun`)\n"
-                "  * `abs:` for Abstract text\n"
+                "  * `ti:` for Title: For multi-word titles, connect words with `+` (e.g. `ti:knowledge+distillation` or `ti:attention+is+all+you+need`)\n"
+                "  * `au:` for Author: Write the author name directly (e.g. `au:Geoffrey Hinton` or `au:Hinton`)\n"
+                "  * `abs:` for Abstract text (e.g. `abs:graph+neural+network`)\n"
                 "  * `cat:` for Subject Category (e.g. `cat:cs.AI`, `cat:cs.CL`, `cat:cs.CV`)\n"
                 "  * `all:` for all fields (default if no specific field is specified)\n"
                 "- Boolean Operators: MUST be UPPERCASE `AND`, `OR`, `ANDNOT`.\n"
-                "- IMPORTANT: Do NOT use quotes or escaped quotes (`\"`) around multi-word phrases. Write terms directly (e.g. `ti:knowledge distillation`).\n\n"
+                "- CRITICAL: Do NOT use quotes (`\"` or `'`). Connect title words with `+` directly.\n\n"
                 "Examples:\n"
                 "1. 'What is the last paper about RAG?' -> {\"query\": \"ti:RAG\", \"criteria\": \"submitteddate\"}\n"
-                "2. 'Papers on knowledge distillation by Geoffrey Hinton' -> {\"query\": \"ti:knowledge distillation AND au:Geoffrey Hinton\", \"criteria\": \"relevance\"}\n"
-                "3. 'Recent papers on reinforcement learning in computer vision' -> {\"query\": \"ti:reinforcement learning AND cat:cs.CV\", \"criteria\": \"submitteddate\"}\n\n"
+                "2. 'Papers on knowledge distillation by Geoffrey Hinton' -> {\"query\": \"ti:knowledge+distillation AND au:Geoffrey Hinton\", \"criteria\": \"relevance\"}\n"
+                "3. 'What is the most relevant paper about attention is all you need?' -> {\"query\": \"ti:attention+is+all+you+need\", \"criteria\": \"relevance\"}\n"
+                "4. 'Recent papers on reinforcement learning in computer vision' -> {\"query\": \"ti:reinforcement+learning AND cat:cs.CV\", \"criteria\": \"submitteddate\"}\n\n"
                 "Output strictly the JSON result adhering to QueryFormat schema without extra text."
             ),
             llm=self.llm,
@@ -66,7 +67,7 @@ class subAgents :
                 "You are a silent tool-calling agent. Your ONLY task is to immediately execute the `fetch_paper` tool with the given query and criteria.\n\n"
                 "CRITICAL RULES:\n"
                 "1. NEVER output conversational text, thoughts, reasoning, or explanations.\n"
-                "2. Call `fetch_paper(query=..., criteria=...)` directly.\n"
+                "2. Call `fetch_paper(query=..., criteria=...)` directly with the EXACT parameters you received.\n"
                 "3. Return strictly the ResponseFormat JSON object."
             ),
             llm=self.slm,

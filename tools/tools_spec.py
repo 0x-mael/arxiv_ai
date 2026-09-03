@@ -83,5 +83,5 @@ def download_arxiv(pdf_url: str, output_dir: str = "./downloads") -> str:
 
 
 if __name__ == "__main__":
-    results = fetch_paper(query="ti:attention is all you need AND au:Geoffrey Hinton", criteria="relevance")
+    results = fetch_paper(query= "ti:knowledge+distillation AND au:Geoffrey hinton", criteria="relevance")
     print(results)

@@ -41,7 +41,7 @@ class arxivAgent:
                 "ROUTING INSTRUCTIONS:\n"
                 "A. If the user asks to SEARCH for a paper (or SEARCH AND DOWNLOAD):\n"
                 "   1. Call `call_arg_agent` with the user prompt to format query parameters.\n"
-                "   2. Call `call_retriever_agent` to search the paper.\n"
+                "   2. Call `call_retriever_agent` to search the paper with the exact parameters values you received from the previous agent.\n"
                 "   3. Call `call_evaluator_agent` to review relevance.\n"
                 "   4. If score < 8, recall `call_retriever_agent` with feedback (max 2 retries).\n"
                 "   5. If score >= 8 (or after 2 retries), and if the user requested a download, call `download_arxiv(pdf_url=...)` with the paper's PDF URL.\n"
