@@ -60,15 +60,18 @@ class subAgents :
             output_cls=QueryFormat,
         )
 
+        self.responseformat = json.dumps(ResponseFormat.model_json_schema()["properties"], indent=2)
+
         self.retriever_agent = FunctionAgent(
             name="RetrieverAgent",
             description="Search a research paper according to the query and params",
             system_prompt=(
                 "You are a silent tool-calling agent. Your ONLY task is to immediately execute the `fetch_paper` tool with the given query and criteria.\n\n"
+                f"Target JSON Schema:\n{self.responseformat}\n\n"
                 "CRITICAL RULES:\n"
                 "1. NEVER output conversational text, thoughts, reasoning, or explanations.\n"
                 "2. Call `fetch_paper(query=..., criteria=...)` directly with the EXACT parameters you received.\n"
-                "3. Return strictly the ResponseFormat JSON object."
+                "3. Strictly return a JSON object adhering to the Target JSON Schema with all required fields (title, authors, published_date, summary, pdf_url)."
             ),
             llm=self.slm,
             tools=[fetch_paper],
@@ -83,16 +86,19 @@ class subAgents :
             name="EvaluatorAgent",
             description="Evaluate and give a bias-free feedback on an agent response based on the relevance of the response",
             system_prompt=(
-                "You are an expert evaluator judge agent. You will evaluate the retrieved paper's relevance against the user research prompt.\n\n"
-                f"Temporal Reference: The current real-world date is {current_date_str} (year {current_year}). "
-                f"Any papers published up to {current_year} are valid, NOT in the future.\n\n"
+                "You are an expert scientific paper judge. Your job is to evaluate whether the retrieved research paper matches the scientific topic of the user query.\n\n"
+                f"Temporal Reference: Current real-world date is {current_date_str} (year {current_year}). Papers up to {current_year} are published and valid.\n\n"
                 f"Target JSON Schema:\n{self.evalformat}\n\n"
-                "Output Format Example:\n"
-                '{"score": 9, "feedback": "The paper is directly relevant to knowledge distillation by Geoffrey Hinton."}\n\n'
+                "SCORING GUIDELINES:\n"
+                "- Score 8 to 10 (Relevant): The paper investigates, develops, applies, or discusses the requested scientific topic (e.g. if the user asks for 'RAG', any paper about RAG, Graph RAG, Agentic RAG, or RAG applications is FULLY RELEVANT).\n"
+                "- Score 5 to 7 (Partially Relevant): The paper touches on related technologies but is not centered on the topic.\n"
+                "- Score 0 to 4 (Not Relevant): The paper is completely off-topic.\n\n"
                 "CRITICAL RULES:\n"
-                "1. Output ONLY a valid JSON object matching the schema above.\n"
-                "2. Score must be an integer from 0 to 10.\n"
-                "3. No explanations before or after the JSON."
+                "1. User query intent: Phrases like 'What is the last paper about X?' or 'Most relevant paper about X?' mean 'Find a paper about topic X'. The paper is an original research paper on X, NOT a paper discussing 'the last paper'.\n"
+                "2. Specific applications, extensions, and novel methods for the requested concept are 100% relevant.\n"
+                "3. Output ONLY a valid JSON object matching the schema above.\n"
+                "4. Score must be an integer from 0 to 10.\n"
+                "5. No text or markdown before or after the JSON."
             ),
             llm=self.llm,
             output_cls=EvaluationFormat,

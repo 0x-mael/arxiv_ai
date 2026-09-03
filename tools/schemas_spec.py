@@ -13,7 +13,8 @@ class EvaluationFormat(BaseModel):
     feedback: str
 
 class ResponseFormat(BaseModel):
-    title:str
-    authors : list[str]
-    published_date: datetime
-    pdf_url : str
+    title: str
+    authors: list[str]
+    published_date: str
+    summary: Optional[str] = None
+    pdf_url: str
