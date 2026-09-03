@@ -16,6 +16,7 @@ class subAgents :
 
         self.ollama_url = os.getenv("OLLAMA_API_URL")
         self.model_name = os.getenv("MODEL_NAME")
+        self.model_small = os.getenv("MODEL_SMALL")
 
         self.llm = Ollama(
             model=self.model_name,
@@ -23,7 +24,12 @@ class subAgents :
             temperature=0.2,
             request_timeout=120,
         )
-
+        self.slm = Ollama(
+            model=self.model_small,
+            base_url=self.ollama_url,
+            temperature=0.1,
+            request_timeout=120,
+        )
         self.queryformat = json.dumps(QueryFormat.model_json_schema()["properties"], indent=2)
 
         self.argformat_agent = FunctionAgent(
@@ -61,7 +67,7 @@ class subAgents :
                 "2. You should give a final response using strictly the ResponseFormat schema.\n"
                 "3. If the evaluator agent gives you feedback, refine the query string to get a better result."
             ),
-            llm=self.llm,
+            llm=self.slm,
             tools=[fetch_paper],
             output_cls=ResponseFormat,
         )

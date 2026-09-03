@@ -20,7 +20,7 @@ mlflow.llama_index.autolog()
 class arxivAgent:
     def __init__(self):
         self.ollama_url = os.getenv("OLLAMA_API_URL")
-        self.model_name = os.getenv("MODEL_NAME")
+        self.model_name = os.getenv("MODEL_SMALL", os.getenv("MODEL_NAME","mistral:7b"))
 
         self.llm = Ollama(
             model=self.model_name,

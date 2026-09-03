@@ -57,7 +57,7 @@ arxiver/
 - Python 3.10+
 - [Ollama](https://ollama.com/) running locally with your model:
   ```bash
-  ollama run gemma4:latest
+  ollama run llama3.1:8b
   ```
 
 ### 2. Installation
@@ -86,6 +86,7 @@ Configure your `.env` file in the root directory:
 ```env
 OLLAMA_API_URL=http://localhost:11434
 MODEL_NAME=gemma4:latest
+MODEL_SMALL = llama3.1:8b
 ```
 
 ### 4. Running the Application
@@ -109,7 +110,8 @@ The Gradio interface will be accessible at `http://127.0.0.1:7860` and the MLflo
 ## Example Queries
 
 - *"What is the last paper about RAG?"*
-- *"What is the most relevant paper about knowledge distillation?"*
+- *"What is the most relevant paper about knowledge distillation ?"*
+- *"What is the most relevant paper about knowledge distillation with Hintor as author ?"*
 - *"Find the most recent paper about agentic AI and download it."*
 
 ---

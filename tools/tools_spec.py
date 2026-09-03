@@ -83,5 +83,5 @@ def download_arxiv(pdf_url: str, output_dir: str = "./downloads") -> str:
 
 
 if __name__ == "__main__":
-    results = fetch_paper(query="ti:RAG AND au:Patrick", criteria="relevance")
+    results = fetch_paper(query="all:transformers AND au:Hinton", criteria="relevance")
     print(results)
