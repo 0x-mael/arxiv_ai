@@ -109,6 +109,9 @@ async def call_arg_agent(ctx: Context, prompt: str = "", **kwargs) -> str:
     async with ctx.store.edit_state() as ctx_state:
         ctx_state["state"]["query_args"] = str(result)
         ctx_state["state"]["user_prompt"] = str(user_prompt)
+        # Clear state from previous queries to avoid feedback bleeding
+        ctx_state["state"]["evaluation_content"] = None
+        ctx_state["state"]["retrieved_paper"] = None
 
     return f"Step 1 Complete. Formatted query parameters: {result}\n\nAction required: Call `call_retriever_agent()` now to search for the paper."
 
