@@ -20,13 +20,14 @@ mlflow.llama_index.autolog()
 class arxivAgent:
     def __init__(self):
         self.ollama_url = os.getenv("OLLAMA_API_URL")
-        self.model_name = os.getenv("MODEL_SMALL", os.getenv("MODEL_NAME","mistral:7b"))
+        self.model_name = os.getenv("MODEL_NAME", os.getenv("MODEL_SMALL","mistral:7b"))
 
         self.llm = Ollama(
             model=self.model_name,
             base_url=self.ollama_url,
             temperature=0.2,
-            # request_timeout=120,
+            request_timeout=300.0,
+            additional_kwargs={"keep_alive": "10m"},
         )
         self.orchestrator = self.define_agent()
         self.ctx = Context(self.orchestrator)
@@ -47,7 +48,7 @@ class arxivAgent:
                 "   6. Formulate the final complete answer with the paper title, authors, date, summary, and download status.\n\n"
                 "B. If the user asks to DOWNLOAD a paper that was ALREADY discussed or provided in context:\n"
                 "   - Do NOT run the search pipeline. Directly call `download_arxiv(pdf_url=...)` using the PDF URL from the conversation history, then confirm to the user.\n\n"
-                "CRITICAL: Never output a direct final text answer to the user after Step 1 without completing the required steps."
+                "CRITICAL: Never output a direct final text answer to the user unless the 3 required steps are completed at least."
             ),
             verbose=True,
             initial_state={

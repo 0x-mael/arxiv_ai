@@ -9,9 +9,8 @@ class QueryFormat(BaseModel):
 
 
 class EvaluationFormat(BaseModel):
-    evaluator_name : str
     score : int
-    review: str
+    feedback: str
 
 class ResponseFormat(BaseModel):
     title:str
