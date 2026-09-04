@@ -107,13 +107,12 @@ class subAgents :
 subagents = subAgents()
 
 
-async def call_arg_agent(ctx: Context, prompt: str = "", **kwargs) -> str:
+async def call_arg_agent(ctx: Context, prompt: str) -> str:
     """Step 1: Given a user prompt, create a json schema parameters query for the research agent."""
-    user_prompt = prompt or kwargs.get("prompt") or kwargs.get("user_prompt", "")
-    result = await subagents.argformat_agent.run(user_msg=f"Prepare the research query based on this prompt {user_prompt}")
+    result = await subagents.argformat_agent.run(user_msg=f"Prepare the research query based on this prompt {prompt}")
     async with ctx.store.edit_state() as ctx_state:
         ctx_state["state"]["query_args"] = str(result)
-        ctx_state["state"]["user_prompt"] = str(user_prompt)
+        ctx_state["state"]["user_prompt"] = str(prompt)
         # Clear state from previous queries to avoid feedback bleeding
         ctx_state["state"]["evaluation_content"] = None
         ctx_state["state"]["retrieved_paper"] = None
@@ -121,16 +120,16 @@ async def call_arg_agent(ctx: Context, prompt: str = "", **kwargs) -> str:
     return f"Step 1 Complete. Formatted query parameters: {result}\n\nAction required: Call `call_retriever_agent()` now to search for the paper."
 
 
-async def call_retriever_agent(ctx: Context, **kwargs) -> str:
+async def call_retriever_agent(ctx: Context, query: str = "", criteria: str = "relevance") -> str:
     """Step 2: Search and retrieve research papers using the parameters prepared in Step 1."""
     async with ctx.store.edit_state() as ctx_state:
         stored_args = ctx_state["state"].get("query_args", None)
-        args = kwargs.get("query_args") or kwargs or stored_args
+        search_query = query or stored_args
 
-        if not args:
+        if not search_query:
             return "No args to do the query. Please call call_arg_agent first."
 
-        user_msg = f"Use the `fetch_paper` tool to search for the requested paper using these parameters: {args}\n\n"
+        user_msg = f"Use the `fetch_paper` tool to search for the requested paper using these parameters: query='{search_query}', criteria='{criteria}'\n\n"
 
         feedback = ctx_state["state"].get("evaluation_content", None)
         if feedback:
@@ -142,14 +141,14 @@ async def call_retriever_agent(ctx: Context, **kwargs) -> str:
         return f"Step 2 Complete. Paper retrieved: {result}\n\nAction required: Call `call_evaluator_agent()` now to evaluate the paper."
 
 
-async def call_evaluator_agent(ctx: Context, paper_info: str = "", query: str = "", **kwargs) -> str:
+async def call_evaluator_agent(ctx: Context, paper_info: str = "", query: str = "") -> str:
     """Step 3: Evaluate the retrieved paper's relevancy against the user's initial research query."""
     async with ctx.store.edit_state() as ctx_state:
-        retrieved_paper = paper_info or kwargs.get("paper_info") or ctx_state["state"].get("retrieved_paper", None)
+        retrieved_paper = paper_info or ctx_state["state"].get("retrieved_paper", None)
         if not retrieved_paper:
             return "No paper retrieved to evaluate. Please call call_retriever_agent first."
 
-        user_prompt = query or kwargs.get("query") or kwargs.get("user_prompt") or ctx_state["state"].get("user_prompt", None)
+        user_prompt = query or ctx_state["state"].get("user_prompt", None)
         if not user_prompt:
             return "Empty user prompt. Unable to give feedback."
 
@@ -159,6 +158,7 @@ async def call_evaluator_agent(ctx: Context, paper_info: str = "", query: str = 
         ctx_state["state"]["evaluation_content"] = str(result)
 
         return f"Step 3 Complete. Evaluation review: {result}\n\nAction required: If score is 8 or higher (or max retries reached), write your final complete answer to the user. Otherwise recall `call_retriever_agent()`."
+
 
 
 
