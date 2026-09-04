@@ -70,7 +70,7 @@ class subAgents :
                 "CRITICAL RULES:\n"
                 "1. NEVER output conversational text, thoughts, reasoning, or explanations.\n"
                 "2. Call `fetch_paper(query=..., criteria=...)` directly with the EXACT parameters you received.\n"
-                f"3. Strictly return a JSON object adhering to the following Target JSON Schema : {self.responseformat} with all required fields (title, authors, published_date, summary, pdf_url)."
+                f"3. You should strictly return a JSON object adhering to the following Target JSON Schema : {self.responseformat} with all required fields (title, authors, published_date, summary, pdf_url) without any extra text."
             ),
             llm=self.slm,
             tools=[fetch_paper],
